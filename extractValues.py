@@ -4,6 +4,7 @@ import re
 import sys
 import math
 import copy
+from engineering_notation import to_eng_notation
 
 def capacitorValues(fileName = 'rawCapData1.txt'):
    
@@ -114,9 +115,9 @@ def ratio(list):
 
 def rParallel(list):
    try:
-      invert = 0
+      invert = 0.0
       for val in list:
-         invert += 1.0/val
+         invert += 1.0/float(val)
 
       ret = 1.0/invert
    except ZeroDivisionError as zde:
@@ -127,7 +128,7 @@ def rParallel(list):
 def rSeries(list):
    sum = 0
    for val in list:
-      sum += val
+      sum += float(val)
    return sum
 
 def cParallel(list):
@@ -136,13 +137,12 @@ def cParallel(list):
 def cSeries(list):
    return rParallel(list)
    
-holder = []
-
 def defaultOperation(list):
    return 
 
 def combination(array, r):
     data = list(range(0, r))
+    global holder 
     holder = []    
     combinationUtil(array, data, 0, len(array)-1, 0, r);
     return
@@ -165,10 +165,10 @@ def combinationUtil(array, data, start, end, index, r):
 def getComponentCombinations(componentList, numComponentsInGroup, operation, operationName = '?', addOriginalComponents = True):
     
     combinations = []
- 
+     
     if numComponentsInGroup > 1:
        combination(componentList, numComponentsInGroup)   
-    
+       
        for thing in holder:
           group = Component(thing, operation, operationName)
           combinations.append(group)
@@ -200,19 +200,31 @@ def main():
     for r in rs:
        print(r)
        print(type(r.__str__()))
+
+def get_qualified_name(func):
+   return func.__module__ + '.' + func.__name__
        
 class Component (object):
    VALUE = 0
    COMPONENTS = 1
    OPERATION = 2
-   OPERATION_NAME = 3
+   LABEL = 3
    
-   def __init__(self, components, operation = None , operationName = '?'):
+   def __init__(self, components, operation = None , label = '', value = None):
       if operation != None:
-         self.parts = (operation(components), components, operation, operationName)
+         #if value wasn't specified...
+         #caluclate the value
+         if value == None:
+            self.parts = (operation(components), components, operation, label)
+         #else, save yourself the time
+         else:
+            self.parts = (value, components, operation, label)     
+      #if the operation was None,
+      #then you got a single component       
       else:
-         single_val = components
-         self.parts = (single_val, [single_val], None, operationName)
+         single_val = float(components)
+         self.parts = (single_val, [single_val], None, label)
+      return
          
    def getOperation(self):
       return self.parts[self.OPERATION]
@@ -224,18 +236,40 @@ class Component (object):
       return self.parts[self.COMPONENTS]
       
    def __str__(self):
-      value = str(self.parts[self.VALUE]) 
-      
-      if len(self.parts[self.COMPONENTS]) <= 1:
-         return str(self.parts[self.VALUE]) + '(single)'
+      eng_val = to_eng_notation(self.parts[self.VALUE])
 
-      opName = self.parts[self.OPERATION_NAME] 
+      if len(self.parts[self.COMPONENTS]) <= 1:
+         return eng_val + '(single)'
+
+      label = self.parts[self.LABEL] 
       compList = []
       
       for component in self.parts[self.COMPONENTS]:
-         compList.append("{:.3e}".format(component))
+         eng_str = to_eng_notation(component)
+         compList.append(eng_str)
       
-      return '{:.3e}'.format(self.parts[self.VALUE]) + " using: " + opName + " " + str(compList)
+      return eng_val + " = " + label + " " + str(compList)
+   
+   def toSaveStr(self):
+      className = self.__class__.__name__          
+      comps = self.parts[self.COMPONENTS]
+      label = self.parts[self.LABEL     ]
+      val   = self.parts[self.VALUE     ]
+      op    = self.parts[self.OPERATION ]
+      
+      #if the operation was 'None' then the component 
+      #was a SINGLE
+      #therefore, you need to save the 'component' variable
+      #AS a FLOAT
+      if op == None:
+         op = 'None'
+         comps = float(comps[0])
+      else:
+         op = get_qualified_name(op)
+         
+      python_str = className + '(' + str(comps) + ',' + op + ',\'' \
+      + label + '\',' + str(val) + ')' 
+      return python_str
          
    def __eq__(self, intVal):
       return self.parts[self.VALUE] == intVal
@@ -257,7 +291,10 @@ class Component (object):
    
    def __gt__(self, other):
       return self.getValue() > other.getValue()
-      
+   
+   def __float__(self):
+      return self.getValue()
+         
 if __name__ == '__main__':
    main()
    

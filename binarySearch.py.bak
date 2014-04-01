@@ -1,0 +1,46 @@
+#! /usr/bin/python
+import sys
+import extractValues
+
+def binarySearch(list, target):
+   length = len(list)
+   length /= 2
+   length = int(length)
+   
+   #sample the first item of the list
+   
+   if type(list[0]) is extractValues.Component:
+      #print 'List of components switching target...'
+      
+      target = extractValues.Component(target)
+   
+   return binarySearchRecurse(list, target, length, length)
+
+def binarySearchRecurse(list, target, width, curr):
+   
+   if width == 0:
+      return list[curr]
+   
+   difference = list[curr] - target
+      
+   if difference < 0:
+      curr += int(width/2)
+   else:
+      curr -= int(width/2)
+            
+   return binarySearchRecurse(list, target, int(width/2), curr) 
+
+def main():
+
+   rValues =   extractValues.resistorValues()
+   seriesR    = extractValues.getComponentCombinations(rValues, 1, extractValues.rSeries, 'R Series')
+   for r in seriesR:
+      print r
+    
+   print binarySearch(range(0,19), 10)   
+   
+   print binarySearch(seriesR, 68001.0)   
+   return
+
+if __name__ == '__main__':
+   main()

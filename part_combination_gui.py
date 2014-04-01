@@ -5,17 +5,24 @@ import code
 import re
 
 import extractValues
+from extractValues import Component
+
 import binarySearch 
 import resistor_gui
 
+#compatibility between python2 and python3
 if sys.version_info[0] == 2:
    import Tkinter
    from Tkinter import *
    import ttk
+   import tkMessageBox
+   global messagebox   
+   messagebox = tkMessageBox 
 else:
    import tkinter
    from tkinter import *
    from tkinter import ttk
+   from tkinter import messagebox
 
 def main():
    root = Tk()
@@ -30,15 +37,20 @@ def main():
    create_component_frame(root)
    create_component_search_frame(root)
    
+   setup_routine()
+   
    code.interact(local=locals())   
    #enter the main loop
    root.mainloop()
    return 
   
   
+  
+  
    
 def create_file_frame(root):
    #this frame selects the file to open the components from   
+   global file_frame
    file_frame = ttk.LabelFrame(root, text = 'Component File Selector Frame')
    file_frame.grid(row = 0, column = 0, sticky = 'nesw')
 
@@ -79,6 +91,8 @@ def create_file_frame(root):
 
 
 
+
+
 def create_component_frame(root):      
    #Create the component creator frame
    global component_frame
@@ -107,7 +121,7 @@ def create_component_frame(root):
    choose_parallel['text'] = 'Parallel configuration'
       
    component_show_all_button = ttk.Button(master = component_frame, text = 'show all permutations')
-   
+      
    global component_list_box_var
    component_list_box_var = StringVar()
    #leave the list_box_var variable blank
@@ -116,6 +130,8 @@ def create_component_frame(root):
       
    global component_list_box 
    component_list_box = Listbox(master = component_frame, listvariable = component_list_box_var)
+         
+   adv_label = ttk.Label(master = component_frame, text = 'click for advanced information...')
          
    choose_res.grid(row = 0, column = 0, sticky = 'w')
    choose_cap.grid(row = 1, column = 0, sticky = 'w')
@@ -141,9 +157,11 @@ def create_component_frame(root):
    'This is called the:\nComponent List Box >>') 
 
    component_list_box_label.grid(row = 4, column = 0)
-   component_list_box.grid      (row = 4, column = 1)
+   component_list_box.grid      (row = 4, column = 1, sticky = 'nesw')
    
    component_show_all_button.grid(row = 5, column = 1, sticky = 'w')
+   
+   adv_label.grid(row = 6, column = 0, sticky = 'w')
    
    #important variable
    #holds all the permuted components
@@ -154,74 +172,121 @@ def create_component_frame(root):
    permuted_components = {}
       
    def permute(*args):
-       component_choice = component_choice_var.get()
-       configuration = configuration_choice_var.get()
-       length    = permutation_length_var.get()
-       key = component_choice + '-' + configuration + '-' + length
-       
-       length = int(length)
-       
-       print(key)
-    
-       file_name = get_file_name_from_file_frame()
-       operation = None
-       
-       #seriesCaps = extractValues.getComponentCombinations(capValues, 2, extractValues.cSeries, 'C Series')
-       #parallelCaps =  extractValues.getComponentCombinations(capValues, 2, extractValues.cParallel, 'C Parallel')
-       
-       if component_choice == 'capacitor':
-          #load all the single capValues and resValues from file
-          capValues = extractValues.capacitorValues(file_name)   
 
-          if   configuration == 'series':
-             operation = extractValues.cSeries
-             
-          elif configuration == 'parallel':
-             operation = extractValues.cParallel
+      component_choice = component_choice_var.get()
+      configuration = configuration_choice_var.get()
+      length    = int(permutation_length_var.get())
+       
+      error_msg = ''
+      read_source_success = False 
+      
+      source = ''
+      source_components = []
+      operation = None
+       
+      try:       
+         file_name = get_file_name_from_file_frame()
           
-          permuted_components[key] = \
-          extractValues.getComponentCombinations(capValues, length, operation, 'capacitor ' + configuration)
-             
-       elif component_choice == 'resistor':
-          #load all the single capValues and resValues from file
-          rValues   = extractValues.resistorValues(file_name)
-
-          if   configuration == 'series':
-             operation = extractValues.rSeries
-             
-          elif configuration == 'parallel':
-             operation = extractValues.rParallel
-
-          permuted_components[key] = \
-          extractValues.getComponentCombinations(rValues, length, operation, 'resistor ' + configuration)
+         source = file_name
+                           
+         if component_choice == 'capacitor':
+            #load all the single capValues and resValues from file
+            source_components = extractValues.capacitorValues(source)   
+         
+         elif component_choice == 'resistor':
+            source_components = extractValues.resistorValues(source)
+                 
+         read_source_success = True
        
-       #refresh the component_search list_box
-       text = get_list_of_keys_from_dict(permuted_components)
-       text = tuple(text)
-       component_list_box_var.set(text)      
-       return
-                
+      except Exception as e:          
+         print(e)    
+         error_msg += str(e)
+         read_source_success = False
+       
+      if not read_source_success:
+         try:
+            key = get_key_from_component_list_box()      
+            source = key
+            source_components = permuted_components[key]
+            read_source_success = True
+         except Exception as e: 
+            error_msg += '\n' + str(e)
+            read_source_success = False
+      
+      if not read_source_success:
+         status_label_var.set(error_msg)
+         return 
+      
+      if component_choice == 'capacitor':
+         if configuration == 'series':
+            operation = extractValues.cSeries
+             
+         elif configuration == 'parallel':
+            operation = extractValues.cParallel
+                       
+      elif component_choice == 'resistor':
+         if configuration == 'series':
+            operation = extractValues.rSeries
+             
+         elif configuration == 'parallel':
+            operation = extractValues.rParallel
+         
+      label = component_choice + ' ' + configuration
+       
+      key = component_choice + '-' + configuration + '-' + str(length) + '[' + source + ']'
+
+      permuted_components[key] = \
+      extractValues.getComponentCombinations(source_components, length, operation, label)
+      print_permuted_components_with_key(permuted_components, key)
+
+      #refresh the component_search list_box
+      text = get_list_of_keys_from_dict(permuted_components)
+      text = tuple(text)
+      component_list_box_var.set(text)  
+          
+      #TODO: if there are more than 1 keys, then activate the 
+      #pairing utility 
+      return
+                      
    permute_button['command'] = permute
       
    def show_all_component_combos(*args):
       try:
          key = get_key_from_component_list_box()
          print_permuted_components_with_key(permuted_components, key)
+         
       except Exception as e:
          print(e)
       return
    
    component_show_all_button['command'] = show_all_component_combos
+   
+   def advanced_usage_toast(*args):
+      messagebox.showinfo(message = advanced_message)
+      return
+   
+   adv_label.bind('<ButtonPress-1>', advanced_usage_toast)
+   root.rowconfigure(index = 0, weight = 1)
+   root.columnconfigure(index = 1, weight = 1)
+   distribute_weight(component_frame)
    return
 
 
 
+advanced_message = 'instead of choosing source parts from the \'component file frame\'\
+you can AGAIN permute components from the \'component permutation frame\' \
+\nThey are after all, just numbers right?'
+
+
+
+
 def create_component_search_frame(root):
+   global search_frame
    search_frame = ttk.LabelFrame(master = root, text = 'Search Frame')
    search_frame.grid(row = 0, column = 2, sticky = 'nesw')
    ###subtly important row configure
    #is the reason why search_frame expands when the window expands
-   root.rowconfigure(index = 2, weight = 1)
+   root.rowconfigure(index = 0, weight = 1)
    root.columnconfigure(index = 2, weight = 2)
    
    #need a list box so that the user can
@@ -278,10 +343,7 @@ def create_component_search_frame(root):
       index = int(indecies[0])
       key = current_component_list_box_key
       comp = permuted_components[key][index]
-      parts = comp.getParts()
-      r_frame.draw_resistors(parts)
-      print(comp.getValue())
-      print(comp)
+      r_frame.draw_resistors(comp)
       return 
       
    browse_all_list_box.bind('<<ListboxSelect>>', browse_all_list_box_command)
@@ -302,7 +364,7 @@ def create_component_search_frame(root):
             
             status_label_var.set('found a component: ' + str(obj.getValue()))
             
-            r_frame.draw_resistors(obj.getParts())
+            r_frame.draw_resistors(obj)
             
             #clear all the current idecies
             highlighted = browse_all_list_box.curselection()
@@ -324,7 +386,6 @@ def create_component_search_frame(root):
    
    search_button['command'] = search_button_command 
    
-   
    browse_all_label.grid   (row = 0, column = 0, sticky = 'w')
    browse_all_list_box.grid(row = 1, column = 0, sticky = 'nesw')
    sub_frame.grid          (row = 3, column = 0, sticky = 'nesw')
@@ -333,12 +394,35 @@ def create_component_search_frame(root):
    #search_frame.rowconfigure(index = 4, weight = 1)
    #search_frame.columnconfigure(index = 4, weight = 1)
    
-   r_frame.draw_resistors([123,456,789])
-   #r_frame.on()
+   r_frame.draw_resistors(Component(components = [123,456,789], operation = extractValues.rParallel))
    
    distribute_weight(search_frame)
    return
+    
+    
+    
+    
         
+def setup_routine():
+   test_file = 'EE347_parts.txt'
+   rValues   = extractValues.resistorValues(test_file)
+   
+   configuration = 'parallel'
+   length = 2
+   operation = extractValues.rParallel
+   key = 'resistor' + '-' + configuration + '-' + str(length)
+
+   permuted_components[key] = \
+   extractValues.getComponentCombinations(rValues, length, operation, 'resistor ' + configuration)
+   
+   text = get_list_of_keys_from_dict(permuted_components)
+   text = tuple(text)
+   component_list_box_var.set(text) 
+   return  
+
+
+
+
         
 def update_browse_all_list_box(*args):
    key = get_key_from_component_list_box()
@@ -353,9 +437,13 @@ def update_browse_all_list_box(*args):
    return
     
     
+
+
     
 def get_list_of_keys_from_dict(dictionary):
    return list(dictionary.keys())
+
+
 
 
 
@@ -370,14 +458,20 @@ def get_key_from_component_list_box():
    index = int(indecies[0])   
    keys = get_list_of_keys_from_dict(permuted_components)
    return keys[index]
+
+
    
    
     
 def print_permuted_components_with_key(permuted_components, key):
    comp_list = permuted_components[key]
    for comp in comp_list:
-      print(comp)
+      print(comp.toSaveStr())
    return
+
+
+
+
 
 def components_to_string(permuted_components, key):
    #make a list the same length as len(permuted_components[key])
@@ -385,16 +479,30 @@ def components_to_string(permuted_components, key):
    components = permuted_components[key]
    
    for i in range(0, len(l)):
-      l[i] = str(components[i])
-   
+      l[i] = str(components[i])   
    return l
+
+
+   
+   
    
 def get_file_name_from_file_frame():
    indecies = lbox.curselection()
-   index = int(indecies[0])
-   #print(file_names_list[index])
+   try:
+      index = int(indecies[0])
+      highlight_label_frame(file_frame, False)
+
+   except IndexError as ie:
+      msg_error = 'Select a file from Component File Selector Frame'
+      status_label_var.set(msg_error)
+      
+      highlight_label_frame(file_frame, True)
+      raise IndexError('File wasnt selected in file frame')
+      
    file_name = file_names_list[index]
    return file_name
+
+
 
 
 
@@ -413,6 +521,8 @@ def distribute_weight(frame):
 
 
 
+
+
 #this function returns a list of filenames in 
 #the current directory
 def search_current_dir(ext = 'txt'):
@@ -428,6 +538,19 @@ def search_current_dir(ext = 'txt'):
          valid_files.append(afile)
          
    return valid_files
+
+
+
+
+
+def highlight_label_frame(label_frame, highlight):
+   if highlight:
+      label_frame['relief'] = RAISED
+   else:
+      label_frame['relief'] = FLAT
+   return
+
+
 
 
 
