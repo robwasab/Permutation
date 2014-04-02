@@ -6,7 +6,6 @@ import re
 
 import extractValues
 from extractValues import Component
-from extractValues import rParallel
 
 import binarySearch 
 import resistor_gui
@@ -344,6 +343,7 @@ def create_component_search_frame(root):
       index = int(indecies[0])
       key = current_component_list_box_key
       comp = permuted_components[key][index]
+      print(comp.toSaveStr)
       r_frame.draw_resistors(comp)
       return 
       
@@ -416,9 +416,16 @@ def setup_routine():
    permuted_components[key] = \
    extractValues.getComponentCombinations(rValues, length, operation, 'resistor ' + configuration)
    
+   combo0 = Component((100, 100), operation, 'r parallel')
+   operation = extractValues.rSeries
+   
+   combo1 = Component((50, 50, combo0), operation, 'r series')
+   permuted_components[key].append(combo1)
+   
    text = get_list_of_keys_from_dict(permuted_components)
    text = tuple(text)
    component_list_box_var.set(text) 
+   
    return  
 
 

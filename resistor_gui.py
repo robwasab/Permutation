@@ -111,6 +111,7 @@ class ResistorFrame(ttk.Frame):
          last_index = len(band_codes)
          self.draw_band(tens_power, last_index)
       except ValueError as ve:
+         print(ve)
          self.c.create_rectangle(self.rect_cordinates, fill = '#666666') 
          self.c.create_text((self.origin[X]* 4, self.origin[Y] * 4), text = 'WHAT?')
       return
@@ -133,6 +134,8 @@ class ResistorFrame(ttk.Frame):
       self.c.create_rectangle(cordinate, fill = c)
       return
    
+   def __str__(self):
+      return 'ResistorFrame'
   
 def rotate_horiz(origin, rect_cord):
    
@@ -200,20 +203,24 @@ class GroupResistorFrame(ttk.Frame):
          if type(current_comp) == Component:
             print('Starting Recursive Dive!')
             print(current_comp)
-            current_comp.destroy()
-            current_comp = GroupResistorFrame(master = self)
-            add_resistor_to_frame(current_comp, i)            
-            current_comp.draw_resistors(master = self, value = current_comp)
+            gui = GroupResistorFrame(master = self)
+            if isinstance(self.r_list[i], ttk.Frame):
+               self.r_list[i].destroy()
+            self.r_list[i] = gui
+            
+            add_resistor_to_frame(gui, i)            
+            gui.draw_resistors(current_comp)
          else:               
             r_frame = self.r_list[i]
-            if type(r_frame) != ResistorFrame:
-      
+            
+            if r_frame.__class__ != ResistorFrame:
                print('Destroying index ' + str(i) + ' Not a ResistorFrame')
-               print(type(r_frame))
                r_frame.destroy()
                r_frame = ResistorFrame(master = self, value = current_comp)
-            r_frame.set_orientation(orient)
-            r_frame.draw_value(val_list[i])
+            
+            r_frame.set_orientation(orient) 
+            print(current_comp)              
+            r_frame.draw_value(current_comp)
             add_resistor_to_frame(r_frame, i)
             
       #clean up
@@ -222,9 +229,9 @@ class GroupResistorFrame(ttk.Frame):
       #if there aren't any unused indecies, your good, return
       if len(unused_indxs) == 0:
          return
-         
+      print('used indecies: ' + str(val_list))   
       for indx in unused_indxs:
-         #print('Destroying idecies' + str(indx))
+         print('Cleaning up idecies ' + str(indx))
          self.r_list[indx].destroy()
          
       self.r_list = self.r_list[0:len(val_list)]
@@ -235,7 +242,17 @@ class GroupResistorFrame(ttk.Frame):
       
    def on(self):
       self.grid()
-
+   
+   def __str__(self):
+      return 'Group Resistor Frame'
+   
+   def destroy(self):
+      for r in self.r_list:
+         print('Destroying: ' + str(r))
+         r.destroy()
+      print('Destroying: ' + str(self))   
+      ttk.Frame.destroy(self)
+      
 def get_config_from_component(comp):
    try:
       op = comp.getOperation().__name__
@@ -270,7 +287,7 @@ def color(value):
    elif value == 9:
       return '#FFFFFF'
    else:
-      raise ValueError('[Unknown Value %d] must be b/w 0 thru 9' % value)   
+      raise ValueError('[Unknown Value %f] must be b/w 0 thru 9' % value)   
 
 def determine_bands(res_val):
    orig_res_val = res_val
@@ -298,7 +315,7 @@ def determine_bands(res_val):
       #push onto the list zero index is the newest additions
       tens_place_digits.insert(0, tens_place_digit)
       res_val -= tens_place_digit * tens_place / 10
-         
+      
       tens_place *= 10
                   
       if res_val <= 0:

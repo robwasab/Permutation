@@ -245,9 +245,11 @@ class Component (object):
       compList = []
       
       for component in self.parts[self.COMPONENTS]:
-         eng_str = to_eng_notation(component)
-         compList.append(eng_str)
-      
+         if type(component) == float: 
+            eng_str = to_eng_notation(component)
+            compList.append(eng_str)
+         else:
+            compList.append(str(component))
       return eng_val + " = " + label + " " + str(compList)
    
    def toSaveStr(self):
@@ -264,10 +266,18 @@ class Component (object):
       if op == None:
          op = 'None'
          comps = float(comps[0])
+         comps = str(comps)
       else:
          op = get_qualified_name(op)
+         ret = []
+         for comp in comps:
+            if type(comp) == Component:
+               ret.append(comp.toSaveStr())
+            else:
+               ret.append(str(comp))
+         comps = list_to_string(ret)
          
-      python_str = className + '(' + str(comps) + ',' + op + ',\'' \
+      python_str = className + '(' + comps + ',' + op + ',\'' \
       + label + '\',' + str(val) + ')' 
       return python_str
          
@@ -275,25 +285,34 @@ class Component (object):
       return self.parts[self.VALUE] == intVal
    
    def __add__(self, other):
-      return self.getValue() + other.getValue()
+      return self.getValue() + float(other)
       
    def __sub__(self, other):
-      return self.getValue() - other.getValue()
+      return self.getValue() - float(other)
       
    def __mul__(self, other):
-      return self.getValue() * other.getValue()
+      return self.getValue() * float(other)
       
    def __div__(self, other):
-      return self.getValue() / other.getValue()
+      return self.getValue() / float(other)
    
    def __lt__(self, other):
-      return self.getValue() < other.getValue()
+      return self.getValue() < float(other)
    
    def __gt__(self, other):
-      return self.getValue() > other.getValue()
+      return self.getValue() > float(other)
    
    def __float__(self):
       return self.getValue()
+
+def list_to_string(l):
+   ret = '['
+   for thing in l:
+      ret += thing
+      ret += ', '
+   ret = ret[0:-2]
+   ret += ']'
+   return ret
          
 if __name__ == '__main__':
    main()
