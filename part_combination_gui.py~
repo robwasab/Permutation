@@ -343,7 +343,7 @@ def create_component_search_frame(root):
       index = int(indecies[0])
       key = current_component_list_box_key
       comp = permuted_components[key][index]
-      print(comp.toSaveStr)
+      print(comp.toSaveStr())
       r_frame.draw_resistors(comp)
       return 
       
@@ -483,7 +483,7 @@ def print_permuted_components_with_key(permuted_components, key):
 
 def components_to_string(permuted_components, key):
    #make a list the same length as len(permuted_components[key])
-   l = [0] * len(permuted_components[key])   
+   l = (0,) * len(permuted_components[key])   
    components = permuted_components[key]
    
    for i in range(0, len(l)):

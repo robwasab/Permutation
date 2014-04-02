@@ -182,7 +182,7 @@ class GroupResistorFrame(ttk.Frame):
          
       elif config == R_SINGLE:
          add_resistor_to_frame = lambda r, incr: r.grid(column = incr, row = 0)
-         orient = R_VERTICAL
+         orient = R_HORIZONTAL
          
       val_list = comp.getParts()
       
@@ -193,35 +193,45 @@ class GroupResistorFrame(ttk.Frame):
             #try to see if there is an element in the list
             r_frame = self.r_list[i]
          except IndexError as ie:
-            r_frame = ResistorFrame(master = self, value = val_list[i])
-            self.r_list.append(r_frame)
+            self.r_list.append(None)
          
          #is the current val_list[i] a Component Object?
          #if it is, we need to recursively call draw_resistors again, with that 
          #Component 
          current_comp = val_list[i]
          if type(current_comp) == Component:
-            print('Starting Recursive Dive!')
-            print(current_comp)
-            gui = GroupResistorFrame(master = self)
-            if self.r_list[i] isinstance ttk.Frame:
-               self.r_list[i].destroy()
-            self.r_list[i] = gui
+            #print('Starting Recursive Dive!')
+            #print('Value of component to dive with: ' + str(current_comp))
             
+            gui = None
+            r_frame = self.r_list[i]
+            
+            if isinstance(r_frame, GroupResistorFrame):
+               gui = r_frame
+            else:
+               if isinstance(r_frame, ttk.Frame):
+                  r_frame.destroy()   
+                                 
+               gui = GroupResistorFrame(master = self)
+               self.r_list[i] = gui
+               
+            gui.grid_forget()   
             add_resistor_to_frame(gui, i)            
             gui.draw_resistors(current_comp)
          else:               
             r_frame = self.r_list[i]
             
-            if r_frame.__class__ != ResistorFrame:
+            if not isinstance(r_frame, ResistorFrame):
                print('Destroying index ' + str(i) + ' Not a ResistorFrame')
-               r_frame.destroy()
-               r_frame = ResistorFrame(master = self, value = current_comp)
+               
+               if isinstance(r_frame, ttk.Frame):
+                  r_frame.destroy()
+                                    
+               self.r_list[i] = ResistorFrame(master = self, value = current_comp)
             
-            r_frame.set_orientation(orient) 
-            print(current_comp)              
-            r_frame.draw_value(current_comp)
-            add_resistor_to_frame(r_frame, i)
+            self.r_list[i].set_orientation(orient) 
+            self.r_list[i].draw_value(current_comp)
+            add_resistor_to_frame(self.r_list[i], i)
             
       #clean up
       unused_indxs = range(len(val_list), len(self.r_list))
@@ -229,12 +239,13 @@ class GroupResistorFrame(ttk.Frame):
       #if there aren't any unused indecies, your good, return
       if len(unused_indxs) == 0:
          return
-      print('used indecies: ' + str(val_list))   
+            
       for indx in unused_indxs:
          print('Cleaning up idecies ' + str(indx))
          self.r_list[indx].destroy()
          
       self.r_list = self.r_list[0:len(val_list)]
+      
       return
    
    def off(self):
@@ -245,13 +256,14 @@ class GroupResistorFrame(ttk.Frame):
    
    def __str__(self):
       return 'Group Resistor Frame'
-   
+         
    def destroy(self):
       for r in self.r_list:
-         print('Destroying: ' + str(r))
+         r.grid_remove()
          r.destroy()
-      print('Destroying: ' + str(self))   
+        
       ttk.Frame.destroy(self)
+      return
       
 def get_config_from_component(comp):
    try:

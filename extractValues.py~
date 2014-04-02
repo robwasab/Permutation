@@ -176,7 +176,11 @@ def getComponentCombinations(componentList, numComponentsInGroup, operation, ope
     #Add the single, non permuted values
     if addOriginalComponents:
        for component in componentList:
-          c = Component(component)
+          c = 0
+          if type(c) == int or type(c) == float:
+             c = Component(component)
+          else:
+             c = component;   
           combinations.append(c)
     
     #sort the return list
@@ -275,7 +279,7 @@ class Component (object):
                ret.append(comp.toSaveStr())
             else:
                ret.append(str(comp))
-         comps = list_to_string
+         comps = list_to_string(ret)
          
       python_str = className + '(' + comps + ',' + op + ',\'' \
       + label + '\',' + str(val) + ')' 
