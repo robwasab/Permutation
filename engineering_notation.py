@@ -8,6 +8,7 @@ def zero_index():
    raise ValueError('couldnt find zero power in suffixes array')
    
 def to_eng_notation(num, d_places = 3):
+   num = float(num)
    power = int(math.floor(math.log10(math.fabs(num))))
    power_index = power // 3
    

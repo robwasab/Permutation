@@ -2,7 +2,8 @@
 import sys
 import cmath
 import math
-from extractValues import Component
+import extractValues 
+from component import *
 
 if sys.version_info[0] == 2:
    import Tkinter
@@ -39,7 +40,7 @@ class ResistorFrame(ttk.Frame):
       self.set_orientation(R_VERTICAL)
             
       self.beige = '#D69B36'
-      self.blue = '#66CCFF'
+      self.blue  = '#66CCFF'
             
       self.band_width = self.r_width
       
@@ -112,8 +113,9 @@ class ResistorFrame(ttk.Frame):
          self.draw_band(tens_power, last_index)
       except ValueError as ve:
          print(ve)
-         self.c.create_rectangle(self.rect_cordinates, fill = '#666666') 
-         self.c.create_text((self.origin[X]* 4, self.origin[Y] * 4), text = 'WHAT?')
+         self.c.delete(ALL)
+         self.c.create_rectangle(self.cordinates, fill = '#666666') 
+         self.c.create_text((self.origin[X], self.origin[Y]), text = 'WHAT?')
       return
            
    def draw_band(self, value, band_number):
