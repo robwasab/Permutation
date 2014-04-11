@@ -348,8 +348,9 @@ def main():
    rg.grid(row = 0, column = 1)
    root.rowconfigure(index = 1, weight = 1)
    root.columnconfigure(index = 1, weight = 1)
-   
-   rg.draw_resistors([100,150,1000])
+
+   comp = Component(components = [123,456,789], operation = extractValues.rParallel)   
+   rg.draw_resistors(comp)
    code.interact(local=locals())   
    root.mainloop()
    

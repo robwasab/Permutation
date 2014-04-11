@@ -6,11 +6,13 @@ import re
 from math import fabs
 
 import extractValues
-from component import *
+from   component import Resistor
+from   component import Capacitor
+import component
 from engineering_notation import to_eng_notation
 from progress_frame import ProgressFrame
 import binarySearch 
-import resistor_gui
+import component_gui
 from settings import *
 import component_pairing
 
@@ -295,21 +297,21 @@ def create_component_frame(root):
       
          if configuration == 'series':
          
-            operation = extractValues.cSeries
+            operation = component.cSeries
              
          elif configuration == 'parallel':
          
-            operation = extractValues.cParallel
+            operation = component.cParallel
                        
       elif component_choice == 'resistor':
       
          if configuration == 'series':
          
-            operation = extractValues.rSeries
+            operation = component.rSeries
              
          elif configuration == 'parallel':
          
-            operation = extractValues.rParallel
+            operation = component.rParallel
          
       label = component_choice + ' ' + configuration
       
@@ -333,7 +335,8 @@ def create_component_frame(root):
       func = extractValues.getComponentCombinations
       
       start_background(root, out_queue, func, componentList = source_components, \
-      numComponentsInGroup = length, operation = operation, operationName = label)
+      numComponentsInGroup = length, op = operation, operationName = label,\
+      componentType = component_choice)
          
       # Start a function to check a queue for GUI-related updates
       # When the background process is done, it will call permute_finisher
@@ -677,7 +680,7 @@ def create_component_search_frame(root):
     
    global r_frame
    
-   r_frame = resistor_gui.GroupResistorFrame(master = search_frame)
+   group_frame = component_gui.GroupComponentFrame(master = search_frame)
    
    def browse_all_list_box_command(*args):
    
@@ -693,7 +696,7 @@ def create_component_search_frame(root):
       
       print(comp.toSaveStr())
       
-      r_frame.draw_resistors(comp)
+      group_frame.draw_components(comp)
       
       error_var.set('')
       
@@ -724,7 +727,7 @@ def create_component_search_frame(root):
             
             status_label_var.set('found a component: ' + str(obj.getValue()))
             
-            r_frame.draw_resistors(obj)
+            group_frame.draw_components(obj)
             
             per_error = fabs(float(obj)- val)/val * 100
             
@@ -771,12 +774,12 @@ def create_component_search_frame(root):
    
    error_label.grid        (row = 5, column = 0, sticky = 'nwe')  
 
-   r_frame.grid            (row = 6, column = 0, sticky = 'nesw')
+   group_frame.grid            (row = 6, column = 0, sticky = 'nesw')
       
    #search_frame.rowconfigure(index = 4, weight = 1)
    #search_frame.columnconfigure(index = 4, weight = 1)
    
-   r_frame.draw_resistors(Component(components = [123,456,789], operation = extractValues.rParallel))
+   group_frame.draw_components(Resistor(components = [123,456,789], operation = extractValues.rParallel))
    
    distribute_weight(search_frame)
    
@@ -1045,9 +1048,11 @@ def save_components_to_python_file(permuted_components, key):
       
    out_file = file(file_name, 'w')
    
-   out_file.write('from extractValues import Component\n')
+   out_file.write('from component import Resistor\n')
+
+   out_file.write('from component import Capacitor\n')
    
-   out_file.write('import extractValues\n')
+   out_file.write('import component\n')
    
    out_file.write('key_name = ' + '\''+ key + '\'\n')
    

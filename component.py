@@ -13,10 +13,10 @@ def rParallel(lis):
    return ret
 
 def rSeries(lis):
-   sum = 0
+   s = 0
    for val in lis:
-      sum += float(val)
-   return sum
+      s += float(val)
+   return s
 
 def cParallel(lis):
    return rSeries(lis)
@@ -26,7 +26,7 @@ def cSeries(lis):
    
 def defaultOperation(lis):
    return 
-   
+      
 class Component (object):
    VALUE = 0
    COMPONENTS = 1
@@ -51,9 +51,23 @@ class Component (object):
          
    def getOperation(self):
       return self.parts[self.OPERATION]
-      
+   
    def getValue(self):
       return self.parts[self.VALUE]
+      
+   def monte_carlo_value(self):
+   
+      vals = self.parts[self.COMPONENTS]
+     
+      if len(vals) == 1:
+         return float(vals[0])
+      
+      op = self.parts[self.OPERATION]
+      
+      value = op(vals)
+      
+      return value
+   
       
    def getParts(self):
       return self.parts[self.COMPONENTS]
@@ -103,7 +117,7 @@ class Component (object):
       python_str = className + '(' + comps + ',' + op + ',\'' \
       + label + '\',' + str(val) + ')' 
       return python_str
-         
+            
    def __eq__(self, intVal):
       return self.parts[self.VALUE] == intVal
    
@@ -124,7 +138,7 @@ class Component (object):
    
    def __gt__(self, other):
       return self.getValue() > float(other)
-   
+      
    def __float__(self):
       return self.getValue()
 
@@ -140,4 +154,30 @@ def list_to_string(l):
       ret += ', '
    ret = ret[0:-2]
    ret += ']'
-   return ret   
+   return ret 
+   
+#wrapper classes
+class PairedComponent(Component):
+
+   def __init__(self, *args, **kwargs):
+   
+      Component.__init__(self, *args, **kwargs)
+      
+      return
+
+
+class Resistor(Component):
+
+   def __init__(self, *args, **kwargs):
+   
+      Component.__init__(self, *args, **kwargs)
+      
+      return
+
+class Capacitor(Component):
+
+   def __init__(self, *args, **kwargs):
+   
+      Component.__init__(self, *args, **kwargs)
+      
+      return   

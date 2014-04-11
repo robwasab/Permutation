@@ -6,6 +6,7 @@ import math
 import copy
 from engineering_notation import to_eng_notation
 from component import *
+import copy 
 
 def capacitorValues(fileName = 'rawCapData1.txt'):
    
@@ -135,25 +136,87 @@ def combinationUtil(array, data, start, end, index, r):
     return
 
 def getComponentCombinations(componentList = []  , numComponentsInGroup = 1, \
-                                 operation = None, operationName = '?'     , addOriginalComponents = True):
+                                        op = None, operationName = '?'     , \
+                     addOriginalComponents = True, componentType = 'component'):
     
+    componentType = componentType.lower()
+    
+    make_comp = None
+                     
+    if componentType == 'component':
+    
+       make_comp = lambda *args, **kwargs: Component(*args, **kwargs)
+       
+    elif componentType == 'resistor':
+    
+       make_comp = lambda *args, **kwargs: Resistor(*args, **kwargs)
+       
+    elif componentType == 'capacitor':
+    
+       make_comp = lambda *args, **kwargs: Capacitor(*args, **kwargs)
+       
+    else:
+
+       make_comp = lambda *args, **kwargs: Component(*args, **kwargs)       
+    
+    #Component(self, components, operation = None , label = '', value = None):
+          
     combinations = []
      
     if numComponentsInGroup > 1:
+    
        combination(componentList, numComponentsInGroup)   
        
        for thing in holder:
-          group = Component(thing, operation, operationName)
-          combinations.append(group)
+          
+          should_add = True
+          
+          group = make_comp(thing, operation = op, label = operationName)
+          
+          res = group.getValue()
+          
+          res = int(res * 10000)
+          
+          for val in thing:
+          
+             val = int(val * 10000)
+             
+             if res == val:
+             
+                should_add = False
+                
+                break
+          
+          if should_add:
+          
+             combinations.append(group)
+    
+    #account for combinations of itself...
+    for component in componentList:
+    
+       copies = [copy.deepcopy(component)]
+       
+       for i in range(1, numComponentsInGroup):
+       
+          copies.append(copy.deepcopy(component))
+          
+          c = make_comp(copy.deepcopy(copies), operation = op, label = operationName)
+          
+          combinations.append(c)
     
     #Add the single, non permuted values
     if addOriginalComponents:
+    
        for component in componentList:
-          c = 0
+       
+          c = None
+          
           if type(component) == int or type(component) == float:
-             c = Component(component)
+          
+             c = make_comp(component)
           else:
-             c = component;   
+             c = component;
+                
           combinations.append(c)
     
     #sort the return list

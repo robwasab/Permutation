@@ -4,7 +4,7 @@ import sys
 import re
 import math 
 import extractValues
-from component import Component
+from component import PairedComponent
 from component import get_qualified_name
 
 def multiply(a,b):
@@ -23,6 +23,8 @@ def findBestPairs(list1, list2, operation, tolerance = 0.001, target = -1):
          tolerance *= 10
          continue
       break
+   
+   bestPairs.sort(key = lambda x: x.getValue())
       
    return bestPairs
    
@@ -40,7 +42,7 @@ def iterateListsReturnArray(listX, listY, operation, tolerance, target):
          
          if (math.fabs(result - target) <= tolerance) or target == -1:
             
-            thing = Component([listX[x], listY[y]], operation, label, result)
+            thing = PairedComponent([listX[x], listY[y]], operation, label, result)
             
             ret.append(thing)
    

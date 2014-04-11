@@ -61,7 +61,7 @@ def binarySearch(seq, target):
 
 def wrap_up(seq, m, target):
    #check tolerances 
-   diff = lambda x,y : abss(x-y)
+   diff = lambda x,y : abss(float(x)-float(y))
    
    min_diff_index = m
    min_diff = diff(target, seq[m])
