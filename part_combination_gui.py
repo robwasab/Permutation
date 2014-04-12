@@ -89,7 +89,7 @@ def main():
    create_component_search_frame(root)
    
    
-   #setup_routine()
+   setup_routine()
    
    code.interact(local=locals())   
    #enter the main loop
@@ -312,11 +312,23 @@ def create_component_frame(root):
          elif configuration == 'parallel':
          
             operation = component.rParallel
-         
-      label = component_choice + ' ' + configuration
       
+      label = ''
+      
+      if configuration == 'series':
+         
+         label = ' + '
+      
+      elif configuration == 'parallel':
+      
+         label = ' || '
+         
       key = component_choice + '-' + configuration + '-' + str(length) + '[' + source + ']'
-
+ 
+      if length == 1:
+      
+         key = component_choice + '-single-'  + '[' + source + ']'
+     
       progress_frame.show()
       
       progress_frame.setText('Permuting... with ' + str(key))
@@ -350,6 +362,21 @@ def create_component_frame(root):
       return
    
    permute_button['command'] = permute
+   
+   def spinbox_length_command(*args):
+   
+      if int(permutation_length_var.get()) == 1:
+         #grey out the radio buttons parallel and series
+         choose_series['state'] = 'disabled'
+         choose_parallel['state'] = 'disabled'
+      else:
+         choose_series['state'] = 'enabled'
+         choose_parallel['state'] = 'enabled'
+      return   
+   
+   spinbox_length_command()
+   
+   permutation_spin_box['command'] = spinbox_length_command
       
    def save_command(*args):
    
@@ -494,7 +521,7 @@ def update_op_label(spinbox1, spinbox2, op_choice_var, label_var):
    comp1 = spinbox1.get()
    
    comp2 = spinbox2.get()
-   
+      
    op_str = ''
    
    if op_choice_var.get() == 'multiply':
@@ -700,6 +727,10 @@ def create_component_search_frame(root):
       
       error_var.set('')
       
+      if comp.isMonteCallable():
+      
+         comp.monteCarloAnalysis()
+      
       return 
       
    browse_all_list_box.bind('<<ListboxSelect>>', browse_all_list_box_command)
@@ -799,14 +830,8 @@ def setup_routine():
    key = 'resistor' + '-' + configuration + '-' + str(length) + '[' + test_file + ']'
 
    permuted_components[key] = \
-   extractValues.getComponentCombinations(rValues, length, operation, 'resistor ' + configuration)
-   
-   combo0 = Component((100, 100), operation, 'r parallel')
-   operation = extractValues.rSeries
-   
-   combo1 = Component((50, 50, combo0), operation, 'r series')
-   permuted_components[key].append(combo1)
-   
+   extractValues.getComponentCombinations(rValues, length, operation, '||', componentType = 'resistor')
+      
    update_component_list_box()
    return  
 

@@ -83,12 +83,13 @@ class ComponentFrame(ttk.Frame):
             
       return   
 
-   def draw_value(self, value):
+   def draw_value(self, value, tolerance = 0):
       return
 
 class ResistorFrame(ComponentFrame):
 
    def __init__(self, value = 0, *args, **kwargs):
+   
       ComponentFrame.__init__(self, *args, **kwargs)         
 
       self.set_orientation(VERTICAL)
@@ -101,13 +102,18 @@ class ResistorFrame(ComponentFrame):
       self.empty_space = 10
       self.band_height = int(self.height/5)
       
-      self.draw_value(value)      
+      if value != 0: self.draw_value(value)   
+         
       return      
             
-   def draw_value(self, value):
+   def draw_value(self, value, tolerance = 0):
+   
       self.c.delete(ALL)
+            
       band_codes = determine_bands(value)
+      
       tens_power = band_codes[1]
+      
       band_codes = band_codes[0]
       
       if len(band_codes) > 2:
@@ -125,11 +131,27 @@ class ResistorFrame(ComponentFrame):
       try:
          #draw on the bands
          for band_index in range(0, len(band_codes)):
+         
             color_digit = band_codes[band_index]
-            self.draw_band(color_digit, band_index)
+             
+            self.draw_band(color(color_digit), band_index)
       
          last_index = len(band_codes)
-         self.draw_band(tens_power, last_index)
+         
+         pwr_color = color(tens_power)
+         
+         self.draw_band(pwr_color, last_index)
+         
+         if tolerance != 0:
+            try:
+            
+               self.draw_tolerance(tolerance)
+               
+            except KeyError as ke:
+               
+               pass
+               
+         
       except ValueError as ve:
          print(ve)
          self.c.delete(ALL)
@@ -137,7 +159,7 @@ class ResistorFrame(ComponentFrame):
          self.c.create_text((self.origin[X], self.origin[Y]), text = 'WHAT?')
       return
            
-   def draw_band(self, value, band_number):
+   def draw_band(self, colorc, band_number):
       x1  = self.origin[X]
       y1  = self.origin[Y]
       y1 += self.empty_space
@@ -150,10 +172,29 @@ class ResistorFrame(ComponentFrame):
       
       if self.orientation == HORIZONTAL:
          cordinate = rotate_horiz(self.origin, cordinate)
-             
-      c = color(value)
-      self.c.create_rectangle(cordinate, fill = c)
+      
+      self.c.create_rectangle(cordinate, fill = colorc)
       return
+   
+   def draw_tolerance(self, tol):
+   
+      x1  = self.origin[X]
+      y1  = self.origin[Y] + self.height - self.band_height//3 - self.empty_space//2
+      
+      y2  = y1 + self.band_height//3
+       
+      x2  = x1 + self.band_width
+
+      cordinate = (x1, y1, x2, y2)  
+      print(cordinate)
+      
+      if self.orientation == HORIZONTAL:
+         cordinate = rotate_horiz(self.origin, cordinate)
+      
+      color = tolerance_color(tol)
+      
+      self.c.create_rectangle(cordinate, fill = color)
+      
    
    def __str__(self):
       return 'ResistorFrame'
@@ -183,7 +224,7 @@ def rotate_horiz(origin, rect_cord):
 
 class CapacitorFrame(ComponentFrame):
 
-   def __init__(self, value, *args, **kwargs):
+   def __init__(self, value = 0, *args, **kwargs):
    
       ComponentFrame.__init__(self, *args, **kwargs)
             
@@ -193,7 +234,7 @@ class CapacitorFrame(ComponentFrame):
       
       self.set_orientation(VERTICAL)
 
-      self.draw_value(value)
+      if value != 0: self.draw_value(value)
       
       return
       
@@ -269,7 +310,7 @@ class CapacitorFrame(ComponentFrame):
              
       return
       
-   def draw_value(self, value):
+   def draw_value(self, value, tolerance = 0):
 
       self.c.delete(ALL)
       
@@ -295,9 +336,12 @@ class CapacitorFrame(ComponentFrame):
       
       t = t + 'F'
       
+      if tolerance != 0:
+      
+        t = t + ' +/-' + str(tolerance * 100) + '%'
+      
       #text cordinate
       cord = (int(self.c['width'])/2, int(self.c['height']) - 7) 
-      
       
       self.c.create_text(cord, text = t)
       
@@ -390,15 +434,7 @@ class GroupComponentFrame(ttk.Frame):
             
             elif isinstance(source_comp, Component):
             
-               source_op = source_comp.getOperation().__name__
-               
-               if source_op[0] == 'r':
-               
-                  get_frame = lambda *args, **kwargs: ResistorFrame(*args, **kwargs)
-                  
-               elif source_op[0] == 'c':
-                  
-                  get_frame = lambda *args, **kwargs: CapacitorFrame(*args, **kwargs)
+               raise ValueError('Got a type Component, cannot draw this!')
                   
             else:
                #I don't know what to do!
@@ -413,11 +449,17 @@ class GroupComponentFrame(ttk.Frame):
                
                comp_frame.destroy()
                                     
-            self.frame_list[i] = get_frame(master = self, value = current_value)
+            self.frame_list[i] = get_frame(master = self)
             
             self.frame_list[i].set_orientation(orient) 
             
-            self.frame_list[i].draw_value(current_value)
+            if len(source_comp.getParts()) == 1 and source_comp.getTolerance() > 0:
+               
+               self.frame_list[i].draw_value(current_value, tolerance = source_comp.getTolerance())
+               
+            else:
+               
+               self.frame_list[i].draw_value(current_value)
             
             add_component_to_frame(self.frame_list[i], i)
             
@@ -503,6 +545,16 @@ def color(value):
       return '#FFFFFF'
    else:
       raise ValueError('[Unknown Value %f] must be b/w 0 thru 9' % value)   
+
+tol_dict = \
+{0.01  :'#663300', 0.02 :'#FF0000', 0.005:'00FF00',\
+ 0.0025:'#0000FF', 0.001:'#9900FF', \
+ 0.0005:'#666666', 0.05 :'#7F6B00', 0.1:  '#999999'}
+
+
+def tolerance_color(tol):
+
+   return tol_dict[tol]
 
 def determine_bands(res_val):
    orig_res_val = res_val

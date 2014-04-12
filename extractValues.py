@@ -8,109 +8,167 @@ from engineering_notation import to_eng_notation
 from component import *
 import copy 
 
-def capacitorValues(fileName = 'rawCapData1.txt'):
+capacitor_suffixes = {'m': -3, 'u': -6, 'n':-9, 'p':-12}
+
+resistor_suffixes = {'k':3, 'K':3, 'M': 6, 'G': 9}
+
+resistor_tolerances = \
+{'brown':0.01,  'red':0.02, 'green':0.005,\
+ 'blue':0.0025, 'violet':0.001,\
+ 'grey':0.0005, 'gold':0.05, 'silver':0.1}
+
+def read_file_values(fileName, component_maker, suffix_dict, tolerance_dict = None):
    
    f = open(fileName, 'r')
    print('Opened ', fileName)
    
    text = f.read()
    f.close()
+
+   suffix_keys = suffix_dict.keys()
+      
+   valid_suffixes = ''
+      
+   for key in suffix_keys: valid_suffixes = valid_suffixes + key
    
-   matches = re.findall(r'[\d.#]+[\w\s]',text)
+   valid_suffixes = valid_suffixes
+   
+   search_expr = r'([\d.#]+)([' + valid_suffixes + ']?)([\+/-]*)([\w%]*)\s'
+   
+   matches = re.findall(search_expr,text)
 
    if not matches:
       print('no matches found')
       sys.exit(1)
       
-   capValues = []
+   values = []
    
    for match in matches:
       #ignore the ones prefixed with #
-      ignore = re.search(r'#.+', match)
-      if ignore:
-      #   print 'ignoring: C', ignore.group()
-         continue
-      power = 0
-      capValue = 0
-      si_suffix_match = re.search(r'\d+([munp])', match)
       
-      if si_suffix_match:
+      value = match[0]
+      
+      suffix = match[1]
+      
+      tolerance_exp = match[2]
+      
+      tolerance = match[3]
+      
+      if value[0] == '#':
+      
+         continue
+      
+      power = 0
+      
+      if suffix:
          #is the si suffix m, u, n, p ?
-         suffix = si_suffix_match.group(1)
-         if suffix == 'm':
-            power = -3
-         elif suffix == 'u':
-            power = -6
-         elif suffix == 'n':
-            power = -9
-         elif suffix == 'p':
-            power = -12
-         else:
-            print('unknown suffix: ', match)   
+         
+         try:
+            
+            power = suffix_dict[suffix]
+         
+         except KeyError as ke:
+         
+            print('unknown suffix: ' + suffix)   
+            
             continue 
-         capValue = re.sub(r'(\d+)([munp])' , r'\1', match)
-         #print match, '~> ', capValue
          
       else:
          #no si suffix
          power = 0
-         capValue = match
          
-      value = float(capValue) * math.pow(10, power)
-      #print match, '->', value
-      capValues.append(value)
-   return capValues
+      value = float(value) * math.pow(10, power)
+      
+      if not tolerance or not tolerance_exp:
+      
+         values.append(component_maker(value))
+         
+         continue
+      
+      #Find tolerances? Quantity?
+      
+      if tolerance_exp.find('+/-') == -1:
+      
+         print('Disregarding: ' + tolerance_exp)
+         
+         continue
+      
+      tolerance = tolerance.lower()
+         
+      #check to see if the tolerance value matches with 
+      #a particular tolerance key
+      
+      done = False
+      
+      if tolerance_dict:
+         
+         for key in tolerance_dict:
+            
+            if tolerance.find(key) != -1:
+            
+               tolerance = tolerance_dict[key]
+               
+               values.append(component_maker(value, tolerance = tolerance))
+               
+               done = True
+               
+               break
+               
+      if done:
+      
+         continue
+         
+      #did find a tolerance value that matches a key
+      #try to force the tolerance value into a number
+      #look for 5%
+      match = re.search(r'([\d\.]+)%', tolerance)
+      
+      if match:
+      
+         tolerance = float(match.group(1)) / 100.0
+         
+         values.append(component_maker(value, tolerance = tolerance))
+         
+         continue
+      #look for just a fraction: 0.05
+      try:
+      
+         tolerance = float(tolerance)
+         
+         values.append(component_maker(value, tolerance = tolerance))
+
+      except ValueError as ve:
+      
+         pass
+                        
+      #the for loop ends right here
+      
+   return values
+
+def strip_suffix(string, suffixes):
+
+   for suffix in suffixes:
+   
+      indx = string.find(suffix)
+      
+      if indx != -1:
+      
+         return string[0:indx]
+
+   return string
+    
+def capacitorValues(filename = 'rawCapData1.txt'):
+   
+   component_maker = lambda *args, **kwargs: Capacitor(*args, **kwargs)
+   
+   return read_file_values(filename, component_maker, capacitor_suffixes)
+      
    
 def resistorValues(filename = 'rawResistorData.txt'):
    
-   f = open(filename, 'r')
-   print('Opened ', filename)
+   component_maker = lambda *args, **kwargs: Resistor(*args, **kwargs)
    
-   text = f.read()
-   f.close()
-   
-   #look for <td>pF</td>
-   matches = re.findall(r'[\d.#]+[\w\s]',text)
-
-   if not matches:
-      print('no matches found')
-      sys.exit(1)
-      
-   rValues = []
-   
-   for match in matches:
-      #ignore the ones prefixed with #
-      ignore = re.search(r'#.+', match)
-      if ignore:
-      #   print 'ignoring: R', ignore.group()
-         continue
-
-      power = 0
-      rValue = ''
-      si_suffix_match = re.search(r'[\d]+([kKM])', match)
-      
-      if si_suffix_match:
-         #is the si suffix k K M?
-         suffix = si_suffix_match.group(1)
-         if suffix == 'k' or suffix == 'K':
-            power = 3
-         elif suffix == 'M':
-            power = 6
-         else:
-            print('unknown suffix: ', match)   
-            continue 
-         rValue = re.sub(r'(\d+)([kKM])' , r'\1', match)
-         #print match, '~> ', capValue
-         
-      else:
-         #no si suffix
-         power = 0
-         rValue = match
-         
-      value = float(rValue) * math.pow(10, power)
-      #print match, '->', value
-      rValues.append(value)
-   return rValues
+   return read_file_values(filename, component_maker, resistor_suffixes, resistor_tolerances)
 
 
 def combination(array, r):
@@ -164,6 +222,8 @@ def getComponentCombinations(componentList = []  , numComponentsInGroup = 1, \
     combinations = []
      
     if numComponentsInGroup > 1:
+    
+       #SCRAMBLE the components
     
        combination(componentList, numComponentsInGroup)   
        
@@ -225,22 +285,11 @@ def getComponentCombinations(componentList = []  , numComponentsInGroup = 1, \
     return combinations
 
 def main():
-    rValues = resistorValues()
-    combination(rValues, 3)
-    
-    rs = []
-    for combo in holder:
-       r = Component(combo, rSeries, 'Series')
-       rs.append(r)
+    rValues = resistorValues('test_tolerances.txt')
     
     for rValue in rValues:
-       r = Component(rValue)
-       rs.append(r)
     
-    for r in rs:
-       print(r)
-       print(type(r.__str__()))       
-
+       print(rValue)
          
 if __name__ == '__main__':
    main()
